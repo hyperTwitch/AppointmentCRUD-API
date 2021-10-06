@@ -197,31 +197,49 @@ function deleteAppointment(id) {
  * CREATE A RANDOM APPOINTMENT WITH 1-5 RANDOMLY SELECTED SERVICES ASSOCIATED WITH IT
  */
 function createRandomAppointment() {
-  db.serialize(() => {
-    // Get a list of all the available goods and services
-    let goodsServices = [];
-    db.all("SELECT id FROM goodsServices_table", (err, rows) => {
-      goodsServices = rows.map(function(row) {
-        return row.id;
+  return new Promise((resolve, reject) => {
+    db.serialize(() => {
+      // Get a list of all the available goods and services
+      let goodsServices = [];
+      db.all("SELECT id FROM goodsServices_table", (err, rows) => {
+        goodsServices = rows.map(function(row) {
+          return row.id;
+        });
       });
-    });
 
-    // Generate a random datetime value within the next year
-    db.get(`SELECT datetime(strftime('%s', '2021-10-03 00:00:00') + abs(random() % (strftime('%s', '2022-10-03 23:59:59') - strftime('%s', '2021-10-03 00:00:00'))), 'unixepoch') AS randomAppointment`, (err, row) => {
-      console.log("Creating appointment" + JSON.stringify(row.randomAppointment));
+      // Generate a random datetime value within the next year
+      db.get(`SELECT datetime(strftime('%s', '2021-10-03 00:00:00') + abs(random() % (strftime('%s', '2022-10-03 23:59:59') - strftime('%s', '2021-10-03 00:00:00'))), 'unixepoch') AS randomAppointment`, (err, row) => {
+        console.log("Creating appointment " + JSON.stringify(row.randomAppointment));
 
-      // Create the new appointment with the random time
-      db.run(`INSERT INTO appointmentSchedule_table (timeslot) VALUES (?)`, [row.randomAppointment], function(err) {
-        // Get the id of the newly added appointment
-        db.get("SELECT last_insert_rowid() as randomAppointmentId", (err, row) => {
-          // Generate a random number of randomly selected services (up to 5) and associate them with the new appointment
-          let numScheduledServices = Math.floor(Math.random() * 5 + 1);
-          console.log(`Creating ${numScheduledServices} services for new appointment with ID of ` + JSON.stringify(row.randomAppointmentId));
-          for(let i = 0; i < numScheduledServices; i ++) {
-            let index = Math.floor(Math.random() * goodsServices.length);
-            console.log(`Creating service number ${(i + 1)} as ${index}`);
-            db.run(`INSERT INTO appointmentServices_table (appointmentID, goodServiceID) VALUES (?, ?)`, [row.randomAppointmentId, goodsServices[index]]);
-          }
+        if(err) {
+          reject("Failed to create appointment " + err.message);
+        }
+
+        db.serialize(() => {
+          // Create the new appointment with the random time
+          db.run(`INSERT INTO appointmentSchedule_table (timeslot) VALUES (?)`, [row.randomAppointment], function(err) {
+            if(err) {
+              reject("Failed to create appointment " + err.message);
+            }
+
+            // Get the id of the newly added appointment
+            db.get("SELECT last_insert_rowid() as randomAppointmentId", (err, row) => {
+              if(err) {
+                reject("Failed to create appointment " + err.message);
+              }
+
+              // Generate a random number of randomly selected services (up to 5) and associate them with the new appointment
+              let numScheduledServices = Math.floor(Math.random() * 5 + 1);
+              console.log(`Creating ${numScheduledServices} services for new appointment with ID of ` + JSON.stringify(row.randomAppointmentId));
+              for(let i = 0; i < numScheduledServices; i ++) {
+                let index = Math.floor(Math.random() * goodsServices.length);
+                console.log(`Creating service number ${(i + 1)} as ${index}`);
+                db.run(`INSERT INTO appointmentServices_table (appointmentID, goodServiceID) VALUES (?, ?)`, [row.randomAppointmentId, goodsServices[index]]);
+              }
+
+              resolve("appointment created");
+            });
+          });
         });
       });
     });
@@ -251,9 +269,8 @@ const server = http.createServer((req, res) => {
       console.log("Received data: " + JSON.stringify(req.post));
       switch(request) {
         case "create":
-          createRandomAppointment();
           res.setHeader('Content-Type', 'text/plain');
-          resolve("appointment created");
+          resolve(createRandomAppointment());
           break;
         case "read":
           res.writeHead(200, {"content-type": "application/json"});
