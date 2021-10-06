@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+	<title>Appointment Scheduler</title>
+	<link type="text/css" rel="stylesheet" href="https://cdn.datatables.net/1.11.3/css/jquery.dataTables.min.css">
+	<style>
+		table.dataTable.hover tbody tr:hover, table.dataTable.display tbody tr:hover {
+			cursor: pointer;
+			background-color: #fff6c6;
+		}
+	</style>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+	<script type="text/javascript" src="https://cdn.datatables.net/1.11.3/js/jquery.dataTables.min.js"></script>
+	<script type="text/javascript">
+		$(function () {
+			// SETUP DATA TABLE DISPLAY
+		    var table = $('#appointmentList').DataTable({
+		    	"ajax": {
+		    		"url": "http://localhost:3000/read",
+		    		"data": function(d) {
+		    			d.id = $("body")[0].dataset.getitemid;
+		    			$("body")[0].dataset.getitemid = "";
+		    		},
+		    		"dataSrc": function(json) {
+		    			// todo: display services as a group for the timeslot instead of having each entry as its own row
+		    			// let resultJSON = [];
+		    			// resultJSON = json.map(x => {
+	    				// 	Object.assign(x, json.find(y => y.id == x.id));
+	    				// 	return x;
+	    				// });
+
+	    				// For every returned data item add some functionality buttons
+		    			$.each(json, function(index, value) {
+		    				// delete button
+		    				value.deleteButton = `<button class="delete" data-itemid="${value.id}">delete</button>`;
+
+		    				// update button
+		    				value.updateButton = `<button class="update" data-itemid="${value.id}">update date</button>`;
+		    			});
+		    			return json;
+		    		}
+		    	},
+		    	"columns": [
+		    		{"data": "id"},
+		            {"data": "timeslot"},
+		            {"data": "goodService"},
+		            {"data": "goodServicePrice"},
+		            {"data": "deleteButton"},
+		            {"data": "updateButton"}
+		        ]
+		    });
+
+		    // SEND VIEW SINGLE APPOINTMENT CALL
+		    $("#appointmentList tbody").on("click", "tr", function(event) {
+		    	if($(event.target).is("button")) {
+		    		return;
+		    	}
+		    	else {
+		    		$("body")[0].dataset.getitemid = $(this).find("button")[0].dataset.itemid;
+		    		table.ajax.reload();
+		    	}
+		    });
+
+		    // SEND UPDATE APPOINTMENT CALL
+		    $('#appointmentList').on("click", ".update", function(event) {
+				let start = new Date();
+				let end = new Date(new Date().setFullYear(start.getFullYear() + 1));
+				let randomDate = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+				randomDate = randomDate.toISOString().slice(0, 19).replace('T', ' ');
+
+		    	$.ajax({
+				    url: 'http://localhost:3000/update',
+				    type: "POST",
+				    data: {
+				        id: this.dataset.itemid,
+				        timeslot: randomDate
+				    },
+				    dataType: 'text',
+				    success: function (data) {
+				    	table.ajax.reload();
+				    },
+				    error: function (error) {
+				        console.log(`Error ${error}`);
+				    }
+				});
+		    });
+
+		    // SEND DELETE APPOINTMENT CALL
+		    $('#appointmentList').on("click", ".delete", function(event) {
+		    	$.ajax({
+				    url: 'http://localhost:3000/delete',
+				    type: "POST",
+				    data: {
+				        id: this.dataset.itemid
+				    },
+				    dataType: 'text',
+				    success: function (data) {
+				    	table.ajax.reload();
+				    },
+				    error: function (error) {
+				        console.log(`Error ${error}`);
+				    }
+				});
+		    });
+
+		    // SEND CRATE RANDOM APPOINTMENT CALL
+		    $("#createRandom").on("click", function(event) {
+		    	$.ajax({
+				    url: "http://localhost:3000/create",
+				    type: "POST",
+				    dataType: 'text',
+				    success: function (data) {
+				    	table.ajax.reload();
+				    },
+				    error: function (error) {
+				        console.log(`Error ${error}`);
+				    }
+				});
+		    });
+		});
+	</script>
+</head>
+<body>
+	<button id="createRandom">Create a Random Appointment</button>
+	<table id="appointmentList" class="display">
+		<thead>
+            <tr>
+            	<th></th>
+                <th>timeslot</th>
+                <th>scheduled service</th>
+                <th>scheduled service price</th>
+                <th></th>
+                <th></th>
+            </tr>
+        </thead>
+	</table>
+</body>

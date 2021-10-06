@@ -1,0 +1,14 @@
+- Create a customer table to house customer information such as name and phone number
+- Create a car table to house car information such as owner and model
+- Create a service technician table to house information such as name and working hours
+- Add tech assignment to the appointments table and ensure that the assigned tech is free
+- Add length of time to goods and services table to be used in calculating how long an appointment will take
+- Refactor everything to an OO structure or at least split out into logical files
+- Enahance the random appointment generation to ensure that random appointments created are in the future
+- Create a receipt viewing system
+- Add in error handling
+- Add in data cleanup for security before inserting to database
+- Use prepared statements to allow more flexibility, such as selecting rows to show based on any column
+- Set error headers for returned requests with errors
+- Add ability to create scheduled appointments as well as random ones
+- Add ability to add/remove goods and services to appointments
