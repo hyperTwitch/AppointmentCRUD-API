@@ -12,3 +12,4 @@
 - Set error headers for returned requests with errors
 - Add ability to create scheduled appointments as well as random ones
 - Add ability to add/remove goods and services to appointments
+- Handle what to do when data is passed both via query string and JSON and the keys conflict
